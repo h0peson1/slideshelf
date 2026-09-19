@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/SiteHeader";
-import { getCourse, getSlidesForCourse } from "@/lib/data";
+import { getCourseById } from "@/app/actions/courses";
+import { getSlidesForCourse } from "@/app/actions/slides";
+import { getSession } from "@/lib/auth";
+import { SlideActionButtons } from "./SlideActionButtons";
 
 type PageProps = {
   params: Promise<{ courseId: string }>;
@@ -9,14 +12,19 @@ type PageProps = {
 
 export default async function CourseSlidesPage({ params }: PageProps) {
   const { courseId } = await params;
-  const course = getCourse(courseId);
+  const course = await getCourseById(courseId);
   if (!course) notFound();
 
-  const courseSlides = getSlidesForCourse(courseId);
+  const courseSlides = await getSlidesForCourse(courseId);
+  const session = await getSession();
+  const isRep = session?.role === "COURSE_REP";
 
   return (
     <div className="atmosphere min-h-screen">
-      <SiteHeader actionHref="/login" actionLabel="Sign out" />
+      <SiteHeader
+        actionHref={isRep ? "/rep" : "/login"}
+        actionLabel={isRep ? "Rep desk" : "Rep sign in"}
+      />
       <main className="mx-auto w-full max-w-6xl px-5 pb-20 pt-4">
         <Link
           href="/student"
@@ -49,13 +57,13 @@ export default async function CourseSlidesPage({ params }: PageProps) {
               Available slides
             </h2>
             <p className="text-sm font-medium text-ink-soft">
-              {courseSlides.length} file{courseSlides.length === 1 ? "" : "s"}
+              {courseSlides.length} {courseSlides.length === 1 ? "file" : "files"}
             </p>
           </div>
 
           {courseSlides.length === 0 ? (
             <p className="py-12 text-ink-soft">
-              No slides uploaded for this course yet.
+              No lecture slides yet. Your course representative hasn&apos;t uploaded any slides for this course.
             </p>
           ) : (
             <ul>
@@ -73,14 +81,7 @@ export default async function CourseSlidesPage({ params }: PageProps) {
                       {slide.uploadedAt}
                     </p>
                   </div>
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <button type="button" className="btn-secondary !min-h-10 !px-3 !text-sm">
-                      Open
-                    </button>
-                    <button type="button" className="btn-primary !min-h-10 !px-3 !text-sm !shadow-none">
-                      Download
-                    </button>
-                  </div>
+                  <SlideActionButtons slideId={slide.id} />
                 </li>
               ))}
             </ul>

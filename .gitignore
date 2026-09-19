@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -39,3 +40,18 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local databases & storage
+*.db
+*.db-journal
+/storage/
+/public/uploads/
+
+# cloud credentials & keys
+*-credentials.json
+*service-account*.json
+gcp-key.json
+
+node_modules/
+dist/
+.env

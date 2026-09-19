@@ -1,0 +1,59 @@
+// Supabase PostgreSQL schema for SlideShelf
+// Run with: npx prisma db push --schema=prisma/schema.postgresql.prisma
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         String   @default("STUDENT") // "STUDENT" | "COURSE_REP"
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  slides       Slide[]  @relation("UploadedBy")
+
+  @@map("users")
+}
+
+model Course {
+  id        String   @id @default(cuid())
+  code      String   @unique // e.g. "CS 201"
+  title     String           // e.g. "Data Structures"
+  level     Int              // 100, 200, 300, 400
+  semester  Int              // 1, 2
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  slides    Slide[]
+
+  @@index([level, semester])
+  @@map("courses")
+}
+
+model Slide {
+  id            String   @id @default(cuid())
+  courseId      String   @map("course_id")
+  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title         String   // e.g. "Arrays & Linked Lists"
+  week          Int      // e.g. 1
+  fileName      String   @map("file_name")
+  fileType      String   @map("file_type") // "PDF", "PPT", "PPTX"
+  fileSize      String   @map("file_size") // e.g. "2.4 MB"
+  fileSizeBytes BigInt   @map("file_size_bytes")
+  storagePath   String   @map("storage_path") // Storage object path in Supabase bucket 'lecture-slides'
+  uploadedById  String   @map("uploaded_by_id")
+  uploadedBy    User     @relation("UploadedBy", fields: [uploadedById], references: [id])
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([courseId, week])
+  @@index([uploadedById])
+  @@map("slides")
+}

@@ -74,7 +74,7 @@ export default function HomePage() {
             href="/login"
             className="inline-flex min-h-11 items-center rounded-xl border border-white/25 bg-white/10 px-4 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/18"
           >
-            Sign in
+            Rep desk
           </Link>
         </header>
 
@@ -98,13 +98,13 @@ export default function HomePage() {
             </p>
             <div className="animate-rise-delay-2 mt-8 flex flex-wrap gap-3">
               <Link
-                href="/login"
+                href="/student"
                 className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#e07a2f] px-5 font-semibold text-white shadow-[0_12px_28px_rgba(224,122,47,0.28)] transition hover:bg-[#c86824]"
               >
                 Get the slides
               </Link>
               <Link
-                href="/login?role=rep"
+                href="/login"
                 className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/30 bg-white/10 px-5 font-semibold text-white backdrop-blur-sm transition hover:bg-white/18"
               >
                 I&apos;m the course rep

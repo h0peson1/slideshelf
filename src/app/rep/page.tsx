@@ -1,16 +1,28 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { SiteHeader } from "@/components/SiteHeader";
-import { courses, slides } from "@/lib/data";
+import { getCourses } from "@/app/actions/courses";
+import { getRecentSlides } from "@/app/actions/slides";
+import { getSession } from "@/lib/auth";
+import { RepSlideItem } from "./RepSlideItem";
 
-export default function RepDashboardPage() {
-  const managed = courses.filter((course) => course.level === 200);
-  const recent = slides.slice(0, 5);
+export default async function RepDashboardPage() {
+  const session = await getSession();
+  if (!session || session.role !== "COURSE_REP") {
+    redirect("/login");
+  }
+
+  const allCourses = await getCourses();
+  const managed = allCourses;
+  const recent = await getRecentSlides(6);
+
+  const totalSlides = allCourses.reduce((acc, c) => acc + c.slideCount, 0);
 
   return (
     <div className="atmosphere min-h-screen">
       <SiteHeader actionHref="/login" actionLabel="Sign out" />
       <main className="mx-auto w-full max-w-6xl px-5 pb-20 pt-4">
-        <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="mb-8 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl">
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-shelf">
               Course rep desk
@@ -26,9 +38,42 @@ export default function RepDashboardPage() {
               outdated slides without leaving the desk.
             </p>
           </div>
-          <Link href="/rep/upload" className="btn-primary shrink-0">
-            Upload a slide
-          </Link>
+          <div className="flex gap-3">
+            <Link href="/rep/courses" className="btn-secondary shrink-0">
+              Manage courses
+            </Link>
+            <Link href="/rep/upload" className="btn-primary shrink-0">
+              Upload a slide
+            </Link>
+          </div>
+        </div>
+
+        {/* Database Metrics Summary */}
+        <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <div className="surface p-5">
+            <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
+              Total Courses
+            </p>
+            <p className="mt-2 font-[family-name:var(--font-display)] text-3xl font-extrabold text-ink">
+              {allCourses.length}
+            </p>
+          </div>
+          <div className="surface p-5">
+            <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
+              Total Slides on Shelf
+            </p>
+            <p className="mt-2 font-[family-name:var(--font-display)] text-3xl font-extrabold text-shelf">
+              {totalSlides}
+            </p>
+          </div>
+          <div className="surface col-span-2 p-5 sm:col-span-1">
+            <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
+              Active Rep Desk
+            </p>
+            <p className="mt-2 font-[family-name:var(--font-display)] text-xl font-bold text-ink truncate">
+              {managed.length} {managed.length === 1 ? "Course" : "Courses"} Active
+            </p>
+          </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
@@ -48,27 +93,41 @@ export default function RepDashboardPage() {
               </Link>
             </div>
             <div>
-              {managed.map((course) => (
-                <div key={course.id} className="row-link !cursor-default hover:pl-0 hover:bg-transparent">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-mist text-sm font-bold text-shelf">
-                    {course.code.split(" ")[1]}
-                  </span>
-                  <div>
-                    <p className="text-base font-semibold text-ink">
-                      {course.title}
-                    </p>
-                    <p className="mt-0.5 text-sm text-ink-soft">
-                      {course.code} · {course.slideCount} slides on shelf
-                    </p>
-                  </div>
-                  <Link
-                    href={`/rep/upload?course=${course.id}`}
-                    className="text-sm font-semibold text-shelf"
-                  >
-                    Add slide
-                  </Link>
-                </div>
-              ))}
+              {managed.length === 0 ? (
+                <p className="py-10 text-sm text-ink-soft">
+                  No courses added for this desk yet. Click &quot;Manage&quot; to add your courses.
+                </p>
+              ) : (
+                managed.map((course) => {
+                  const codeParts = course.code.split(" ");
+                  const badgeText = codeParts.length > 1 ? codeParts[1] : course.code;
+                  return (
+                    <div
+                      key={course.id}
+                      className="row-link !cursor-default hover:pl-0 hover:bg-transparent"
+                    >
+                      <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-mist text-sm font-bold text-shelf">
+                        {badgeText}
+                      </span>
+                      <div>
+                        <p className="text-base font-semibold text-ink">
+                          {course.title}
+                        </p>
+                        <p className="mt-0.5 text-sm text-ink-soft">
+                          {course.code} · {course.slideCount}{" "}
+                          {course.slideCount === 1 ? "slide" : "slides"} on shelf
+                        </p>
+                      </div>
+                      <Link
+                        href={`/rep/upload?course=${course.id}`}
+                        className="text-sm font-semibold text-shelf hover:underline"
+                      >
+                        Add slide
+                      </Link>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </section>
 
@@ -82,27 +141,15 @@ export default function RepDashboardPage() {
               </h2>
             </div>
             <div>
-              {recent.map((slide) => (
-                <div
-                  key={slide.id}
-                  className="flex items-start justify-between gap-4 border-b border-[var(--line)] py-4 last:border-b-0"
-                >
-                  <div>
-                    <p className="font-semibold text-ink">{slide.title}</p>
-                    <p className="mt-1 text-sm text-ink-soft">
-                      Week {slide.week} · {slide.fileType} · {slide.fileSize}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 gap-3 text-sm font-semibold">
-                    <button type="button" className="text-ink-soft hover:text-ink">
-                      Edit
-                    </button>
-                    <button type="button" className="text-accent hover:opacity-80">
-                      Replace
-                    </button>
-                  </div>
-                </div>
-              ))}
+              {recent.length === 0 ? (
+                <p className="py-10 text-sm text-ink-soft">
+                  No slides uploaded yet. Use the &quot;Upload a slide&quot; button to add lecture files.
+                </p>
+              ) : (
+                recent.map((slide) => (
+                  <RepSlideItem key={slide.id} slide={slide} />
+                ))
+              )}
             </div>
           </section>
         </div>

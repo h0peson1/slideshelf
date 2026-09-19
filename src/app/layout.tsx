@@ -18,6 +18,13 @@ export const metadata: Metadata = {
   title: "SlideShelf — Lecture slides, once and for all",
   description:
     "A centralized lecture-slide management system for course representatives and students.",
+  icons: {
+    icon: [
+      { url: "/icon.png", type: "image/png" },
+      { url: "/favicon.ico" },
+    ],
+    apple: "/apple-icon.png",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

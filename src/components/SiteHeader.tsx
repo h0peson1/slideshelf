@@ -28,9 +28,15 @@ export function SiteHeader({
           Lecture slides, organized
         </span>
       </Link>
-      <Link href={actionHref} className="btn-secondary">
-        {actionLabel}
-      </Link>
+      {actionLabel === "Sign out" ? (
+        <a href="/api/auth/logout" className="btn-secondary">
+          {actionLabel}
+        </a>
+      ) : (
+        <Link href={actionHref} className="btn-secondary">
+          {actionLabel}
+        </Link>
+      )}
     </header>
   );
 }
