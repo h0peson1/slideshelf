@@ -21,9 +21,15 @@ CREATE TABLE IF NOT EXISTS public.courses (
   title TEXT NOT NULL,
   level INT NOT NULL CHECK (level IN (100, 200, 300, 400)),
   semester INT NOT NULL CHECK (semester IN (1, 2)),
+  lecturer_name TEXT,
+  lecturer_email TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Ensure columns exist for existing database installations
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS lecturer_name TEXT;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS lecturer_email TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_courses_level_sem ON public.courses (level, semester);
 

@@ -24,14 +24,16 @@ model User {
 }
 
 model Course {
-  id        String   @id @default(cuid())
-  code      String   @unique // e.g. "CS 201"
-  title     String           // e.g. "Data Structures"
-  level     Int              // 100, 200, 300, 400
-  semester  Int              // 1, 2
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  slides    Slide[]
+  id            String   @id @default(cuid())
+  code          String   @unique // e.g. "CS 201"
+  title         String           // e.g. "Data Structures"
+  level         Int              // 100, 200, 300, 400
+  semester      Int              // 1, 2
+  lecturerName  String?  @map("lecturer_name")
+  lecturerEmail String?  @map("lecturer_email")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  slides        Slide[]
 
   @@index([level, semester])
   @@map("courses")

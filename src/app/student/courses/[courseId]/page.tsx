@@ -64,6 +64,66 @@ export default async function CourseSlidesPage({ params }: PageProps) {
           </p>
         </div>
 
+        {/* Lecturer section */}
+        {(course.lecturerName || course.lecturerEmail) && (
+          <div className="surface mb-8 flex flex-wrap items-center justify-between gap-4 p-5 sm:px-7">
+            <div className="flex items-center gap-3.5">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-mist text-base font-bold text-shelf">
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                  />
+                </svg>
+              </span>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-shelf">
+                  Course Lecturer
+                </p>
+                <p className="text-base font-bold text-ink">
+                  {course.lecturerName || "Lecturer"}
+                </p>
+                {course.lecturerEmail && (
+                  <p className="text-sm text-ink-soft">
+                    {course.lecturerEmail}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {course.lecturerEmail && (
+              <a
+                href={`mailto:${course.lecturerEmail}?subject=${encodeURIComponent(`${course.code} Course Inquiry — SlideShelf`)}`}
+                className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-shelf px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#073027]"
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
+                  />
+                </svg>
+                Contact Lecturer
+              </a>
+            )}
+          </div>
+        )}
+
         <section className="surface overflow-hidden px-5 sm:px-7">
           <div className="flex items-baseline justify-between border-b border-[var(--line)] py-5">
             <h2

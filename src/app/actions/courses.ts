@@ -10,6 +10,8 @@ export type CourseWithCount = {
   title: string;
   level: number;
   semester: number;
+  lecturerName?: string | null;
+  lecturerEmail?: string | null;
   slideCount: number;
 };
 
@@ -38,6 +40,8 @@ export async function getCourses(level?: number, semester?: number): Promise<Cou
       title: course.title,
       level: course.level,
       semester: course.semester,
+      lecturerName: course.lecturerName ?? null,
+      lecturerEmail: course.lecturerEmail ?? null,
       slideCount: course._count.slides,
     }));
   } catch (err) {
@@ -68,6 +72,8 @@ export async function getCourseById(courseId: string): Promise<CourseWithCount |
       title: course.title,
       level: course.level,
       semester: course.semester,
+      lecturerName: course.lecturerName ?? null,
+      lecturerEmail: course.lecturerEmail ?? null,
       slideCount: course._count.slides,
     };
   } catch (err) {
@@ -84,6 +90,8 @@ export async function addCourse(data: {
   title: string;
   level: number;
   semester: number;
+  lecturerName?: string;
+  lecturerEmail?: string;
 }) {
   const session = await getSession();
   if (!session || session.role !== "COURSE_REP") {
@@ -112,6 +120,8 @@ export async function addCourse(data: {
         title,
         level: data.level || 200,
         semester: data.semester || 1,
+        lecturerName: data.lecturerName?.trim() || null,
+        lecturerEmail: data.lecturerEmail?.trim() || null,
       },
     });
 
@@ -123,6 +133,68 @@ export async function addCourse(data: {
   } catch (error) {
     console.error("Add course error:", error);
     return { success: false, error: "Failed to add course to database." };
+  }
+}
+
+/**
+ * Updates course details and lecturer contact info (Course Rep only)
+ */
+export async function updateCourse(
+  courseId: string,
+  data: {
+    code?: string;
+    title?: string;
+    level?: number;
+    semester?: number;
+    lecturerName?: string;
+    lecturerEmail?: string;
+  },
+) {
+  const session = await getSession();
+  if (!session || session.role !== "COURSE_REP") {
+    return { success: false, error: "Unauthorized: Course Representative login required." };
+  }
+
+  try {
+    const existing = await db.course.findUnique({
+      where: { id: courseId },
+    });
+
+    if (!existing) {
+      return { success: false, error: "Course not found." };
+    }
+
+    // Check if new code conflicts with another course
+    if (data.code && data.code.trim().toUpperCase() !== existing.code.toUpperCase()) {
+      const conflict = await db.course.findUnique({
+        where: { code: data.code.trim().toUpperCase() },
+      });
+      if (conflict && conflict.id !== courseId) {
+        return { success: false, error: `Course code '${data.code.trim().toUpperCase()}' is already in use.` };
+      }
+    }
+
+    const updated = await db.course.update({
+      where: { id: courseId },
+      data: {
+        code: data.code ? data.code.trim().toUpperCase() : undefined,
+        title: data.title ? data.title.trim() : undefined,
+        level: data.level !== undefined ? data.level : undefined,
+        semester: data.semester !== undefined ? data.semester : undefined,
+        lecturerName: data.lecturerName !== undefined ? data.lecturerName.trim() || null : undefined,
+        lecturerEmail: data.lecturerEmail !== undefined ? data.lecturerEmail.trim() || null : undefined,
+      },
+    });
+
+    revalidatePath("/rep");
+    revalidatePath("/rep/courses");
+    revalidatePath("/student");
+    revalidatePath(`/student/courses/${courseId}`);
+
+    return { success: true, course: updated };
+  } catch (error) {
+    console.error("Update course error:", error);
+    return { success: false, error: "Failed to update course details." };
   }
 }
 

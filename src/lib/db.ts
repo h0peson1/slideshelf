@@ -22,6 +22,8 @@ export type DbCourse = {
   title: string;
   level: number;
   semester: number;
+  lecturerName?: string | null;
+  lecturerEmail?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -86,14 +88,14 @@ function getInitialSchema(): DbSchema {
   ];
 
   const initialCourses: DbCourse[] = [
-    { id: "c_cs201", code: "CS 201", title: "Data Structures", level: 200, semester: 1, createdAt: now, updatedAt: now },
-    { id: "c_cs205", code: "CS 205", title: "Database Systems", level: 200, semester: 1, createdAt: now, updatedAt: now },
-    { id: "c_cs214", code: "CS 214", title: "Computer Networks", level: 200, semester: 2, createdAt: now, updatedAt: now },
-    { id: "c_cs101", code: "CS 101", title: "Introduction to Computing", level: 100, semester: 1, createdAt: now, updatedAt: now },
-    { id: "c_cs110", code: "CS 110", title: "Programming Fundamentals", level: 100, semester: 2, createdAt: now, updatedAt: now },
-    { id: "c_cs301", code: "CS 301", title: "Operating Systems", level: 300, semester: 1, createdAt: now, updatedAt: now },
-    { id: "c_cs320", code: "CS 320", title: "Software Engineering", level: 300, semester: 2, createdAt: now, updatedAt: now },
-    { id: "c_cs410", code: "CS 410", title: "Distributed Systems", level: 400, semester: 1, createdAt: now, updatedAt: now },
+    { id: "c_cs201", code: "CS 201", title: "Data Structures", level: 200, semester: 1, lecturerName: "Dr. Kwesi Mensah", lecturerEmail: "kmensah@university.edu", createdAt: now, updatedAt: now },
+    { id: "c_cs205", code: "CS 205", title: "Database Systems", level: 200, semester: 1, lecturerName: "Prof. Elena Rostova", lecturerEmail: "erostova@university.edu", createdAt: now, updatedAt: now },
+    { id: "c_cs214", code: "CS 214", title: "Computer Networks", level: 200, semester: 2, lecturerName: "Dr. Marcus Sterling", lecturerEmail: "msterling@university.edu", createdAt: now, updatedAt: now },
+    { id: "c_cs101", code: "CS 101", title: "Introduction to Computing", level: 100, semester: 1, lecturerName: "Dr. Sarah Adams", lecturerEmail: "sadams@university.edu", createdAt: now, updatedAt: now },
+    { id: "c_cs110", code: "CS 110", title: "Programming Fundamentals", level: 100, semester: 2, lecturerName: "Dr. Michael Chen", lecturerEmail: "mchen@university.edu", createdAt: now, updatedAt: now },
+    { id: "c_cs301", code: "CS 301", title: "Operating Systems", level: 300, semester: 1, lecturerName: "Prof. Arthur Pendelton", lecturerEmail: "apendelton@university.edu", createdAt: now, updatedAt: now },
+    { id: "c_cs320", code: "CS 320", title: "Software Engineering", level: 300, semester: 2, lecturerName: "Dr. Rachel Osei", lecturerEmail: "rosei@university.edu", createdAt: now, updatedAt: now },
+    { id: "c_cs410", code: "CS 410", title: "Distributed Systems", level: 400, semester: 1, lecturerName: "Prof. David Thorne", lecturerEmail: "dthorne@university.edu", createdAt: now, updatedAt: now },
   ];
 
   const initialSlides: DbSlide[] = [
@@ -379,6 +381,8 @@ export const db = {
                 title: c.title,
                 level: c.level,
                 semester: c.semester,
+                lecturerName: c.lecturer_name ?? null,
+                lecturerEmail: c.lecturer_email ?? null,
                 createdAt: c.created_at,
                 updatedAt: c.updated_at,
                 _count: {
@@ -439,6 +443,8 @@ export const db = {
                 title: data.title,
                 level: data.level,
                 semester: data.semester,
+                lecturerName: data.lecturer_name ?? null,
+                lecturerEmail: data.lecturer_email ?? null,
                 createdAt: data.created_at,
                 updatedAt: data.updated_at,
                 _count: {
@@ -471,7 +477,14 @@ export const db = {
     },
 
     async create(args: {
-      data: { code: string; title: string; level: number; semester: number };
+      data: {
+        code: string;
+        title: string;
+        level: number;
+        semester: number;
+        lecturerName?: string | null;
+        lecturerEmail?: string | null;
+      };
     }) {
       if (isSupabaseConfigured()) {
         const supabase = getSupabaseAdmin();
@@ -484,6 +497,8 @@ export const db = {
                 title: args.data.title.trim(),
                 level: args.data.level,
                 semester: args.data.semester,
+                lecturer_name: args.data.lecturerName?.trim() || null,
+                lecturer_email: args.data.lecturerEmail?.trim() || null,
               })
               .select()
               .single();
@@ -495,6 +510,8 @@ export const db = {
                 title: data.title,
                 level: data.level,
                 semester: data.semester,
+                lecturerName: data.lecturer_name ?? null,
+                lecturerEmail: data.lecturer_email ?? null,
                 createdAt: data.created_at,
                 updatedAt: data.updated_at,
               };
@@ -509,13 +526,83 @@ export const db = {
       const now = new Date().toISOString();
       const newCourse: DbCourse = {
         id: `c_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-        ...args.data,
+        code: args.data.code.trim().toUpperCase(),
+        title: args.data.title.trim(),
+        level: args.data.level,
+        semester: args.data.semester,
+        lecturerName: args.data.lecturerName?.trim() || null,
+        lecturerEmail: args.data.lecturerEmail?.trim() || null,
         createdAt: now,
         updatedAt: now,
       };
       data.courses.push(newCourse);
       saveDb(data);
       return newCourse;
+    },
+
+    async update(args: {
+      where: { id: string };
+      data: {
+        code?: string;
+        title?: string;
+        level?: number;
+        semester?: number;
+        lecturerName?: string | null;
+        lecturerEmail?: string | null;
+      };
+    }) {
+      if (isSupabaseConfigured()) {
+        const supabase = getSupabaseAdmin();
+        if (supabase) {
+          try {
+            const updatePayload: any = {};
+            if (args.data.code !== undefined) updatePayload.code = args.data.code.trim().toUpperCase();
+            if (args.data.title !== undefined) updatePayload.title = args.data.title.trim();
+            if (args.data.level !== undefined) updatePayload.level = args.data.level;
+            if (args.data.semester !== undefined) updatePayload.semester = args.data.semester;
+            if (args.data.lecturerName !== undefined) updatePayload.lecturer_name = args.data.lecturerName?.trim() || null;
+            if (args.data.lecturerEmail !== undefined) updatePayload.lecturer_email = args.data.lecturerEmail?.trim() || null;
+
+            const { data, error } = await supabase
+              .from("courses")
+              .update(updatePayload)
+              .eq("id", args.where.id)
+              .select()
+              .single();
+
+            if (!error && data) {
+              return {
+                id: data.id,
+                code: data.code,
+                title: data.title,
+                level: data.level,
+                semester: data.semester,
+                lecturerName: data.lecturer_name ?? null,
+                lecturerEmail: data.lecturer_email ?? null,
+                createdAt: data.created_at,
+                updatedAt: data.updated_at,
+              };
+            }
+          } catch (err) {
+            console.warn("Supabase course update failed:", err);
+          }
+        }
+      }
+
+      const data = ensureDbFile();
+      const course = data.courses.find((c) => c.id === args.where.id);
+      if (!course) throw new Error("Course not found");
+
+      if (args.data.code !== undefined) course.code = args.data.code.trim().toUpperCase();
+      if (args.data.title !== undefined) course.title = args.data.title.trim();
+      if (args.data.level !== undefined) course.level = args.data.level;
+      if (args.data.semester !== undefined) course.semester = args.data.semester;
+      if (args.data.lecturerName !== undefined) course.lecturerName = args.data.lecturerName?.trim() || null;
+      if (args.data.lecturerEmail !== undefined) course.lecturerEmail = args.data.lecturerEmail?.trim() || null;
+      course.updatedAt = new Date().toISOString();
+
+      saveDb(data);
+      return course;
     },
 
     async delete(args: { where: { id: string } }) {
