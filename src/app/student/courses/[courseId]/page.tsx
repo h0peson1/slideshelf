@@ -12,12 +12,28 @@ type PageProps = {
 
 export default async function CourseSlidesPage({ params }: PageProps) {
   const { courseId } = await params;
-  const course = await getCourseById(courseId);
+  let course: any = null;
+  try {
+    course = await getCourseById(courseId);
+  } catch (err) {
+    console.error("CourseSlidesPage getCourseById error:", err);
+  }
   if (!course) notFound();
 
-  const courseSlides = await getSlidesForCourse(courseId);
-  const session = await getSession();
-  const isRep = session?.role === "COURSE_REP";
+  let courseSlides: any[] = [];
+  try {
+    courseSlides = await getSlidesForCourse(courseId);
+  } catch (err) {
+    console.error("CourseSlidesPage getSlidesForCourse error:", err);
+  }
+
+  let isRep = false;
+  try {
+    const session = await getSession();
+    isRep = session?.role === "COURSE_REP";
+  } catch {
+    isRep = false;
+  }
 
   return (
     <div className="atmosphere min-h-screen">

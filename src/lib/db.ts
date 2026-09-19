@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import os from "os";
 import bcrypt from "bcryptjs";
 import { getSupabaseAdmin, isSupabaseConfigured } from "./supabase";
 
@@ -46,24 +47,20 @@ type DbSchema = {
   slides: DbSlide[];
 };
 
-const DB_DIR = path.join(process.cwd(), "storage");
-const DB_FILE = path.join(DB_DIR, "database.json");
+const globalForDb = globalThis as unknown as { __slideshelf_db?: DbSchema };
 
-function ensureDbFile(): DbSchema {
-  if (!fs.existsSync(DB_DIR)) {
-    fs.mkdirSync(DB_DIR, { recursive: true });
+function getDbDir(): string {
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return path.join(os.tmpdir(), "slideshelf_storage");
   }
+  return path.join(process.cwd(), "storage");
+}
 
-  if (fs.existsSync(DB_FILE)) {
-    try {
-      const data = fs.readFileSync(DB_FILE, "utf-8");
-      return JSON.parse(data);
-    } catch {
-      // If file corrupted, reinitialize
-    }
-  }
+function getDbFile(): string {
+  return path.join(getDbDir(), "database.json");
+}
 
-  // Initial Seed Data
+function getInitialSchema(): DbSchema {
   const defaultHash = bcrypt.hashSync("password123", 10);
   const now = new Date().toISOString();
 
@@ -200,30 +197,69 @@ function ensureDbFile(): DbSchema {
     },
   ];
 
-  // Provision sample files for local storage driver demo
-  for (const s of initialSlides) {
-    const filePath = path.join(DB_DIR, s.storagePath);
-    if (!fs.existsSync(filePath)) {
-      fs.mkdirSync(path.dirname(filePath), { recursive: true });
-      fs.writeFileSync(
-        filePath,
-        Buffer.from(`%PDF-1.4\n% SlideShelf Demo File: ${s.title}\nCourse ID: ${s.courseId} Week: ${s.week}\n%%EOF`),
-      );
-    }
-  }
-
-  const initialSchema: DbSchema = {
+  return {
     users: initialUsers,
     courses: initialCourses,
     slides: initialSlides,
   };
+}
 
-  fs.writeFileSync(DB_FILE, JSON.stringify(initialSchema, null, 2), "utf-8");
+function ensureDbFile(): DbSchema {
+  // 1. In-memory singleton hit
+  if (globalForDb.__slideshelf_db) {
+    return globalForDb.__slideshelf_db;
+  }
+
+  const dbDir = getDbDir();
+  const dbFile = getDbFile();
+
+  // 2. Best-effort read from disk
+  try {
+    if (fs.existsSync(dbFile)) {
+      const data = fs.readFileSync(dbFile, "utf-8");
+      const parsed = JSON.parse(data);
+      if (parsed && Array.isArray(parsed.courses) && Array.isArray(parsed.slides)) {
+        globalForDb.__slideshelf_db = parsed;
+        return parsed;
+      }
+    }
+  } catch (err) {
+    // Disk read failed, continue to fallback
+  }
+
+  // 3. Initialize fresh schema
+  const initialSchema = getInitialSchema();
+  globalForDb.__slideshelf_db = initialSchema;
+
+  // 4. Best-effort write to disk (only in non-Vercel local development)
+  if (!process.env.VERCEL && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    try {
+      if (!fs.existsSync(dbDir)) {
+        fs.mkdirSync(dbDir, { recursive: true });
+      }
+      fs.writeFileSync(dbFile, JSON.stringify(initialSchema, null, 2), "utf-8");
+    } catch {
+      // Local disk write failure is harmless
+    }
+  }
+
   return initialSchema;
 }
 
 function saveDb(schema: DbSchema) {
-  fs.writeFileSync(DB_FILE, JSON.stringify(schema, null, 2), "utf-8");
+  globalForDb.__slideshelf_db = schema;
+  if (!process.env.VERCEL && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    try {
+      const dbDir = getDbDir();
+      const dbFile = getDbFile();
+      if (!fs.existsSync(dbDir)) {
+        fs.mkdirSync(dbDir, { recursive: true });
+      }
+      fs.writeFileSync(dbFile, JSON.stringify(schema, null, 2), "utf-8");
+    } catch {
+      // Safe fallback in memory
+    }
+  }
 }
 
 export const db = {
@@ -336,7 +372,7 @@ export const db = {
             query = query.order("code", { ascending: args?.orderBy?.code !== "desc" });
 
             const { data, error } = await query;
-            if (!error && data && data.length > 0) {
+            if (!error && data) {
               return data.map((c: any) => ({
                 id: c.id,
                 code: c.code,
@@ -349,6 +385,9 @@ export const db = {
                   slides: c.slides?.[0]?.count ?? 0,
                 },
               }));
+            }
+            if (error) {
+              console.warn("Supabase course query error, checking fallback:", error.message);
             }
           } catch (err) {
             console.warn("Supabase course query failed, checking fallback:", err);

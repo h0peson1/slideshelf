@@ -9,11 +9,11 @@ const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
  * NEVER import this file into Client Components.
  */
 export function getSupabaseAdmin() {
-  if (!supabaseUrl || !supabaseServiceRoleKey) {
+  if (!isSupabaseConfigured()) {
     return null;
   }
 
-  return createClient(supabaseUrl, supabaseServiceRoleKey, {
+  return createClient(supabaseUrl!, supabaseServiceRoleKey!, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
@@ -22,5 +22,25 @@ export function getSupabaseAdmin() {
 }
 
 export function isSupabaseConfigured(): boolean {
-  return Boolean(supabaseUrl && supabaseServiceRoleKey);
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    return false;
+  }
+
+  const url = supabaseUrl.trim().toLowerCase();
+  const key = supabaseServiceRoleKey.trim().toLowerCase();
+
+  // Guard against unconfigured or template placeholder values
+  if (
+    url === "" ||
+    key === "" ||
+    url.includes("your-project-id") ||
+    url.includes("your-project.supabase.co") ||
+    key.includes("your-supabase-service-role-key") ||
+    key.includes("your-service-role-key")
+  ) {
+    return false;
+  }
+
+  return true;
 }
+

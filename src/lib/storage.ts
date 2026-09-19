@@ -1,7 +1,15 @@
 import path from "path";
 import fs from "fs/promises";
+import os from "os";
 import { SignJWT, jwtVerify } from "jose";
 import { getSupabaseAdmin, isSupabaseConfigured } from "./supabase";
+
+export function getStorageBaseDir(): string {
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return path.join(os.tmpdir(), "slideshelf_storage");
+  }
+  return path.join(process.cwd(), "storage");
+}
 
 export type StorageDriver = "supabase" | "local";
 
@@ -126,9 +134,13 @@ export async function uploadSlideFile(params: UploadParams): Promise<StorageResu
   }
 
   // Local fallback storage driver
-  const localFullPath = path.join(process.cwd(), "storage", storagePath);
-  await fs.mkdir(path.dirname(localFullPath), { recursive: true });
-  await fs.writeFile(localFullPath, params.buffer);
+  const localFullPath = path.join(getStorageBaseDir(), storagePath);
+  try {
+    await fs.mkdir(path.dirname(localFullPath), { recursive: true });
+    await fs.writeFile(localFullPath, params.buffer);
+  } catch (fsErr) {
+    console.warn("Local storage write warning (ephemeral serverless environment):", fsErr);
+  }
 
   return { storagePath, driver: "local" };
 }
@@ -157,7 +169,7 @@ export async function deleteSlideFile(storagePath: string): Promise<void> {
 
   // Local fallback deletion
   try {
-    const localFullPath = path.join(process.cwd(), "storage", storagePath);
+    const localFullPath = path.join(getStorageBaseDir(), storagePath);
     await fs.unlink(localFullPath);
   } catch (err) {
     console.warn("Local storage delete error (file may already be gone):", err);

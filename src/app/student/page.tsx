@@ -4,9 +4,20 @@ import { getSession } from "@/lib/auth";
 import { StudentShelfView } from "./StudentShelfView";
 
 export default async function StudentBrowsePage() {
-  const initialCourses = await getCourses();
-  const session = await getSession();
-  const isRep = session?.role === "COURSE_REP";
+  let initialCourses: any[] = [];
+  try {
+    initialCourses = await getCourses();
+  } catch (err) {
+    console.error("StudentBrowsePage getCourses error:", err);
+  }
+
+  let isRep = false;
+  try {
+    const session = await getSession();
+    isRep = session?.role === "COURSE_REP";
+  } catch {
+    isRep = false;
+  }
 
   return (
     <div className="atmosphere min-h-screen">

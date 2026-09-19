@@ -25,57 +25,67 @@ export type SlideItem = {
  * Retrieves slides for a specific course ordered by week
  */
 export async function getSlidesForCourse(courseId: string): Promise<SlideItem[]> {
-  const slides = await db.slide.findMany({
-    where: { courseId },
-    orderBy: { week: "asc" },
-  });
+  try {
+    const slides = await db.slide.findMany({
+      where: { courseId },
+      orderBy: { week: "asc" },
+    });
 
-  return slides.map((slide) => ({
-    id: slide.id,
-    courseId: slide.courseId,
-    title: slide.title,
-    week: slide.week,
-    fileName: slide.fileName,
-    fileType: slide.fileType,
-    fileSize: slide.fileSize,
-    uploadedAt: slide.createdAt.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }),
-  }));
+    return slides.map((slide) => ({
+      id: slide.id,
+      courseId: slide.courseId,
+      title: slide.title,
+      week: slide.week,
+      fileName: slide.fileName,
+      fileType: slide.fileType,
+      fileSize: slide.fileSize,
+      uploadedAt: slide.createdAt.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }),
+    }));
+  } catch (err) {
+    console.error("getSlidesForCourse error:", err);
+    return [];
+  }
 }
 
 /**
  * Retrieves recent slides across all courses (for Rep Desk)
  */
 export async function getRecentSlides(limit = 6) {
-  const slides = await db.slide.findMany({
-    take: limit,
-    orderBy: { createdAt: "desc" },
-    include: {
-      course: {
-        select: { code: true, title: true },
+  try {
+    const slides = await db.slide.findMany({
+      take: limit,
+      orderBy: { createdAt: "desc" },
+      include: {
+        course: {
+          select: { code: true, title: true },
+        },
       },
-    },
-  });
+    });
 
-  return slides.map((slide) => ({
-    id: slide.id,
-    courseId: slide.courseId,
-    courseCode: slide.course.code,
-    courseTitle: slide.course.title,
-    title: slide.title,
-    week: slide.week,
-    fileName: slide.fileName,
-    fileType: slide.fileType,
-    fileSize: slide.fileSize,
-    uploadedAt: slide.createdAt.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }),
-  }));
+    return slides.map((slide) => ({
+      id: slide.id,
+      courseId: slide.courseId,
+      courseCode: slide.course?.code ?? "",
+      courseTitle: slide.course?.title ?? "",
+      title: slide.title,
+      week: slide.week,
+      fileName: slide.fileName,
+      fileType: slide.fileType,
+      fileSize: slide.fileSize,
+      uploadedAt: slide.createdAt.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }),
+    }));
+  } catch (err) {
+    console.error("getRecentSlides error:", err);
+    return [];
+  }
 }
 
 /**

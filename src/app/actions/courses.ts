@@ -17,53 +17,63 @@ export type CourseWithCount = {
  * Retrieves courses filtered by level and semester with slide counts
  */
 export async function getCourses(level?: number, semester?: number): Promise<CourseWithCount[]> {
-  const whereClause: { level?: number; semester?: number } = {};
-  if (level !== undefined) whereClause.level = level;
-  if (semester !== undefined) whereClause.semester = semester;
+  try {
+    const whereClause: { level?: number; semester?: number } = {};
+    if (level !== undefined) whereClause.level = level;
+    if (semester !== undefined) whereClause.semester = semester;
 
-  const courses = await db.course.findMany({
-    where: whereClause,
-    orderBy: { code: "asc" },
-    include: {
-      _count: {
-        select: { slides: true },
+    const courses = await db.course.findMany({
+      where: whereClause,
+      orderBy: { code: "asc" },
+      include: {
+        _count: {
+          select: { slides: true },
+        },
       },
-    },
-  });
+    });
 
-  return courses.map((course) => ({
-    id: course.id,
-    code: course.code,
-    title: course.title,
-    level: course.level,
-    semester: course.semester,
-    slideCount: course._count.slides,
-  }));
+    return courses.map((course) => ({
+      id: course.id,
+      code: course.code,
+      title: course.title,
+      level: course.level,
+      semester: course.semester,
+      slideCount: course._count.slides,
+    }));
+  } catch (err) {
+    console.error("getCourses error:", err);
+    return [];
+  }
 }
 
 /**
  * Retrieves a single course by its unique ID
  */
 export async function getCourseById(courseId: string): Promise<CourseWithCount | null> {
-  const course = await db.course.findUnique({
-    where: { id: courseId },
-    include: {
-      _count: {
-        select: { slides: true },
+  try {
+    const course = await db.course.findUnique({
+      where: { id: courseId },
+      include: {
+        _count: {
+          select: { slides: true },
+        },
       },
-    },
-  });
+    });
 
-  if (!course) return null;
+    if (!course) return null;
 
-  return {
-    id: course.id,
-    code: course.code,
-    title: course.title,
-    level: course.level,
-    semester: course.semester,
-    slideCount: course._count.slides,
-  };
+    return {
+      id: course.id,
+      code: course.code,
+      title: course.title,
+      level: course.level,
+      semester: course.semester,
+      slideCount: course._count.slides,
+    };
+  } catch (err) {
+    console.error("getCourseById error:", err);
+    return null;
+  }
 }
 
 /**
